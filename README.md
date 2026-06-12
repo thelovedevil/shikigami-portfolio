@@ -23,9 +23,10 @@ Findings submitted to authorised bug bounty programmes on IssueHunt.jp:
 
 | Programme | Finding class | Severity | Status |
 |-----------|--------------|----------|--------|
+| American financial platform | key exposure leading to uuid deobfuscation and refferal code fraud | Critical | Triaged |
 | Japanese financial platform | SQL error disclosure via authentication endpoint | Critical | Triaged |
 | Japanese financial platform | Unauthenticated session exposure via WebAuthn flow | Critical | Triaged |
-| Japanese financial platform | CORS misconfiguration + reflected XSS chain | Critical | Accepted |
+| Japanese financial platform | CORS misconfiguration + reflected XSS chain | Critical | Triaged |
 | Japanese financial platform | WAF bypass via multibyte encoding on login | Critical | Triaged |
 | Japanese media platform | JWT expiry absent + HMAC key exposure | High | Submitted |
 | Japanese media platform | CDN token disclosure via unauthenticated endpoint | Medium | Submitted |
