@@ -1,6 +1,6 @@
 # Shikigami
 
-https://open.substack.com/pub/aikikokurai/p/my-favorite-game-growing-up-was-hack?r=798iyi&utm_campaign=post&utm_medium=web
+write up: https://open.substack.com/pub/aikikokurai/p/my-favorite-game-growing-up-was-hack?r=798iyi&utm_campaign=post&utm_medium=web
 
 Agentic web application penetration testing ecosystem — Japanese infrastructure specialist.
 
