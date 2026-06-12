@@ -231,8 +231,6 @@ VRAM budget management prevents mid-inference spill: `nvidia-smi` query → per-
 | LLM fallback | Amazon Bedrock (Tokyo `ap-northeast-1`) |
 | HTTP client | httpx + curl_cffi (JA4 fingerprinting, Cloudflare bypass) |
 | Browser automation | Playwright (CDP extraction, MutationObserver canary, SPA routing) |
-| State persistence | LangGraph checkpointing (disk + DynamoDB) |
-| OOB callbacks | AWS DynamoDB + Lambda listener |
 | CVSS scoring | CVSS 4.0 vectors, standalone + chained estimates |
 | Reporting | JSON + Markdown, bilingual EN/JP, empirical flag enforcement |
 | Testing | pytest — integration suites with zero mocked network |
