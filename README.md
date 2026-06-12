@@ -261,3 +261,6 @@ VRAM budget management prevents mid-inference spill: `nvidia-smi` query → per-
 ## Status
 
 Private repository — available for review during hiring or engagement discussions.
+
+<img width="1914" height="588" alt="Screenshot 2026-06-12 123241" src="https://github.com/user-attachments/assets/6ee4e42c-aa45-4032-806e-d7e4ec8f38d8" />
+
