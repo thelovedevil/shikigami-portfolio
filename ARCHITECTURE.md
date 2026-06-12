@@ -357,16 +357,7 @@ llm_router.py
 
 ## Checkpoint and resume
 
-LangGraph checkpointing serialises `ReconState` after every node. Two backends:
-
-| Backend | Use case |
-|---------|----------|
-| Disk (SQLite) | Local runs — default |
-| DynamoDB | EC2 production runs — shared across instances |
-
-**Compression**: `clean_text` and `vulnerability_details` are gzip+base64 before write (70–85% reduction). `raw_content` is pruned entirely — not needed for resume.
-
-A crash or network interruption loses at most one node of work. Resume picks up from the last completed node.
+ask on interview 
 
 ---
 
@@ -380,14 +371,4 @@ Matches bug bounty platform etiquette and avoids rate-limit bans on shared infra
 
 ## Key design decisions
 
-**`build_graph()` is a factory, never compiled at import time.**
-Prevents module-level side effects. Checkpointer is injected at runtime (in-memory for local, DynamoDB for production).
-
-**Pipelines chain via serialisation, not imports.**
-Kitsuneki, Tsuki, Kurasu, and Kagami are separate packages. No pipeline imports another's nodes. State handoff is a JSON file. This allows running any pipeline independently or replacing one without touching the others.
-
-**Finding bus topics are typed.**
-`sink_confirmed`, `chain_confirmed`, `cors_credentialed` — not free-form strings. New signal types require adding a topic constant. The `chain_assembler` only consumes known topics, preventing spurious chains from novel LLM output.
-
-**Per-node token caps.**
-Each node has a hard token cap (256 for classifiers, 2048 for chain assembly). This bounds worst-case GPU time and prevents a verbose model from starving downstream nodes.
+ask on interview 
