@@ -1,11 +1,11 @@
 # Shikigami - PROTOTYPE POC 
 
-【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】
+【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】
 
 https://open.substack.com/pub/aikikokurai/p/my-favorite-game-growing-up-was-hack?r=798iyi&utm_campaign=post&utm_medium=web
 
-【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】
-
+【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】【 write up 】
+【 write up 】
 Agentic web application penetration testing ecosystem — Japanese infrastructure specialist.
 
 ![Version](https://img.shields.io/badge/version-0.9.0-blue)
