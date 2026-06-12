@@ -29,7 +29,7 @@ Findings submitted to authorised bug bounty programmes on IssueHunt.jp:
 
 | Programme | Finding class | Severity | Status |
 |-----------|--------------|----------|--------|
-| American financial platform | key exposure leading to uuid deobfuscation and refferal code fraud | Critical | Triaged |
+| American financial platform | key exposure leading to uuid deobfuscation and refferal code fraud | Critical | resolved |
 | Japanese financial platform | SQL error disclosure via authentication endpoint | Critical | resolved |
 | Japanese financial platform | Unauthenticated session exposure via WebAuthn flow | Critical | resolved |
 | Japanese financial platform | CORS misconfiguration + reflected XSS chain | Critical | resolved |
