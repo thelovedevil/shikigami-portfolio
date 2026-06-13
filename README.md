@@ -256,7 +256,7 @@ VRAM budget management prevents mid-inference spill: `nvidia-smi` query → per-
 
 **Modular pipelines** — each pipeline (Kitsuneki, Tsuki, Kurasu, Kagami) runs independently or chains via state handoff. New nodes slot into the graph without touching existing node logic.
 
-**Aesop's fable** - follows legitimate philosophies of onmyodo and western fables to integrate the narrative of fox and crow in west eastern syncretism. the fox gets the crow to speak 
+**Aesop's fable** - follows legitimate philosophies of onmyodo and western fables to integrate the narrative of fox and crow in west eastern syncretism. the fox gets the crow to speak. it's backwards underneath the moons reflection....
 
 ---
 
