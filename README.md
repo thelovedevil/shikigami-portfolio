@@ -256,6 +256,8 @@ VRAM budget management prevents mid-inference spill: `nvidia-smi` query → per-
 
 **Modular pipelines** — each pipeline (Kitsuneki, Tsuki, Kurasu, Kagami) runs independently or chains via state handoff. New nodes slot into the graph without touching existing node logic.
 
+**aesop's fable 
+
 ---
 
 ## Status
