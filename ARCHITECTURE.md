@@ -1,6 +1,6 @@
 # Architecture — Shikigami v0.9.0
 
-## Multi-pipeline topology (70+ nodes)
+## Multi-pipeline topology (78+ nodes)
 
 Shikigami is four LangGraph pipelines sharing one `ReconState` (139 fields). Each pipeline is a separate `StateGraph` compiled independently; they chain via state serialisation (`--state recon_state.json`), not import-time coupling.
 
@@ -334,21 +334,17 @@ Japanese IP callbacks are flagged critical — they confirm server-side executio
 ```
 llm_router.py
     │
-    ├── 1. llama.cpp (in-process GGUF)
-    │      GBNF grammar-constrained tool-calling
+    ├── 1. llama-server (local, fine-tuned LoRA adapter)
+    │      Grammar-constrained tool-calling
     │      Per-node token caps: 256–2048
-    │      KV cache sharing across calls
+    │      RAG-augmented context from vector corpus
     │
-    ├── 2. Ollama (HTTP localhost:11434)
-    │      Health-check gated: /api/tags ping before every call
-    │      Transparent fallback on ConnectionRefusedError
-    │
-    ├── 3. Amazon Bedrock (ap-northeast-1)
+    ├── 2. Amazon Bedrock (ap-northeast-1)
     │      Claude Haiku — catches mid-call TimeoutError
     │
-    └── 4. Anthropic API (optional)
-           Sonnet for PoC generation
-           Ephemeral prompt caching (~5min TTL, ~10% input cost)
+    └── 3. Anthropic API (optional)
+           Strategic reasoning escalation
+           PoC generation
 ```
 
 `--no-llm` runs the full pipeline in symbolic-only mode (no GPU required).
