@@ -10,14 +10,14 @@ Agentic web application penetration testing ecosystem — Japanese infrastructur
 
 ![Version](https://img.shields.io/badge/version-0.9.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Nodes](https://img.shields.io/badge/LangGraph%20nodes-70%2B-orange)
+![Nodes](https://img.shields.io/badge/LangGraph%20nodes-78%2B-orange)
 ![Stack](https://img.shields.io/badge/stack-LangGraph%20%7C%20llama.cpp%20%7C%20AWS-orange)
 
 ---
 
 ## What it is
 
-Shikigami is a **multi-pipeline agentic penetration testing ecosystem** built for Japanese web infrastructure. Four LangGraph pipelines — recon, session capture, active exploitation, and findings analysis — share a common state bus, evidence propagation layer, and LLM routing backbone. 70+ graph nodes coordinate parallel execution, iterative self-improvement, and multi-turn tool-calling exploitation loops.
+Shikigami is a **multi-pipeline agentic penetration testing ecosystem** built for Japanese web infrastructure. Four LangGraph pipelines — recon, session capture, active exploitation, and findings analysis — share a common state bus, evidence propagation layer, and LLM routing backbone. 78+ graph nodes coordinate parallel execution, iterative self-improvement, and multi-turn tool-calling exploitation loops.
 
 Built for bug bounty programmes on Japanese platforms (IssueHunt.jp, BugBounty.jp) where character encoding edge cases (Shift-JIS, EUC-JP, ISO-2022-JP) create attack surfaces that generic Western scanners miss entirely. All LLM inference runs locally via llama.cpp — no target data leaves the machine.
 
@@ -91,17 +91,21 @@ Outputs structured recon state: subdomains, resolved IPs, technology fingerprint
 
 ---
 
-### Tsuki — session capture (6 nodes)
+### Tsuki — session capture + browser exploitation (9 nodes)
 
 ```
 raw_capture → token_classifier → auth_validator → gap_detector → sso_chain_tracer → session_writer
+                                                                                      │
+web3_auth → metamask_setup ──────────────────────────────────────────────────────────────┘
 ```
 
 Chrome DevTools Protocol (CDP) extraction of HttpOnly cookies, bearer tokens, and CSRF artifacts that JavaScript cannot access. LLM-based token classifier separates signal from noise. SSO chain tracer maps OAuth/SAML flows. Outputs structured session file consumed by Kurasu's `session_loader`.
 
+Playwright browser-based exploitation backend for targets behind WAF fingerprinting (Cloudflare, Akamai). Auto-escalation: curl_cffi → Playwright on repeated 403s. CF clearance harvester with JA4 pin for session consistency. Web3/DeFi authentication via MetaMask Playwright integration for authenticated DeFi target scanning.
+
 ---
 
-### Kurasu — active exploitation (35 nodes)
+### Kurasu — active exploitation (40 nodes)
 
 ```
 session_loader → authenticated_crawler → xss_sink_analyzer → login_probe → active_probe
@@ -109,17 +113,20 @@ session_loader → authenticated_crawler → xss_sink_analyzer → login_probe �
     ├── auth_bypass     ─┐
     ├── cors_probe       ├──────── PARALLEL PHASE A ─────────────────────┐
     ├── idor_probe       │                                                │
-    └── http2_probe     ─┘                                                │
+    ├── http2_probe      │                                                │
+    ├── sqli_probe       │                                                │
+    └── port_scan       ─┘                                                │
                                                                           ▼
 oob_handler → mad_probe → param_fuzz → race_probe → stateful_race_probe
     │
 rce_probe → ssrf_pivot_engine → smuggle_probe → upload_polyglot_probe
     │
-prototype_pollution → graphql_depth
+prototype_pollution → graphql_depth → reflection_analyzer
     │
     ├── jwt_analyze     ─┐
     ├── ws_probe         ├──────── PARALLEL PHASE B ─────────────────────┐
-    └── oauth_probe     ─┘                                                │
+    ├── oauth_probe      │                                                │
+    └── context_detector─┘                                                │
                                                                           ▼
 deep_probe → adaptive_probe ◄──────────────────────────┐
     │                                                    │ (loop up to 5×
@@ -137,6 +144,8 @@ privilege_matrix → raw_findings_logger → chain_assembler
 
 Two parallel fan-out phases with `Annotated[T, reducer]` merge logic on shared accumulators. The `adaptive_probe` node runs a multi-turn ReAct tool-calling loop — reads all accumulated evidence, selects and calls tools iteratively (`http_probe`, `fuzz_param`, `playwright_eval`), observes responses, and adapts strategy each turn.
 
+**C++ HTTP/2 single-packet race engine** — native binary for microsecond-precision race conditions via HTTP/2 multiplexing. Multiple requests packed into a single TCP packet to eliminate network jitter. Called from `race_probe` and `stateful_race_probe`.
+
 ---
 
 ### Neurosymbolic pipeline
@@ -148,8 +157,9 @@ Two-layer decision system eliminates ~40% of LLM calls:
 - Regex/rule-based on unambiguous HTTP artifacts
 - Zero cost — pure pattern matching
 
-**Neural layer** (LLM via llama.cpp → Ollama → Bedrock fallback)
+**Neural layer** (LLM via llama.cpp, RAG-augmented)
 - Handles ambiguous evidence the symbolic layer cannot classify
+- RAG retrieval from vector corpus of historical findings enriches analysis context
 - Adaptive exploitation via native tool-calling
 - Three-level JSON parsing with graceful degradation
 
@@ -167,16 +177,35 @@ Cross-node typed signals propagate via a shared bus in state, enabling chained e
 
 ---
 
+### CDN/WAF bypass engine
+
+Unified CDN detection and per-CDN exploitation strategy engine. Auto-detects 7 CDN/WAF providers and applies provider-specific bypass logic:
+
+| Provider | Strategy | Detection |
+|----------|----------|-----------|
+| Cloudflare | curl_cffi JA4 fingerprint → Playwright escalation on 403 | `cf-ray`, `__cf_bm`, server header |
+| Akamai | Playwright-first (browser before curl_cffi) | `akamai-x-cache`, `x-akamai-session-info` |
+| DataDome | Playwright with sensor bypass | `datadome` cookie, `dd_s` |
+| PerimeterX | Session token rotation | `_px3`, `_pxvid` |
+| Imperva/Incapsula | Cookie challenge solver | `incap_ses_`, `visid_incap_` |
+| Sucuri | Direct-origin fallback | `x-sucuri-id` |
+| Fastly | Standard with cache-key manipulation | `x-served-by`, `fastly-` headers |
+
+Anti-spoof safeguards: minimum confidence threshold of 3 independent signals before CDN classification. Session-blocked short-circuit prevents wasting requests against burned IPs.
+
+---
+
 ### Vulnerability coverage
 
 | Category | Nodes | Techniques |
 |----------|-------|------------|
-| Injection | `active_probe`, `rce_probe`, `param_fuzz` | SQLi, SSTI, CSTI, deserialization, command injection |
-| XSS | `xss_sink_analyzer`, `canary_sweep` | DOM sink analysis, MutationObserver-based payload verification, stored XSS via Playwright |
-| Access control | `auth_bypass`, `idor_probe`, `privilege_matrix` | Per-endpoint access-control diff across accounts, path-based auth bypass |
-| SSRF | `ssrf_pivot_engine` | Internal network mapping, OOB verification, redirect chain following |
-| Race conditions | `race_probe`, `stateful_race_probe` | Parallel request races, stateful races with token refresh/resource locks |
+| Injection | `active_probe`, `rce_probe`, `sqli_probe`, `param_fuzz` | SQLi (error/blind/UNION), SSTI, CSTI, deserialization, command injection |
+| XSS | `xss_sink_analyzer`, `canary_sweep`, `reflection_analyzer` | DOM sink analysis, MutationObserver-based payload verification, stored XSS via Playwright, mXSS payloads, reflection context analysis |
+| Access control | `auth_bypass`, `idor_probe`, `privilege_matrix` | Per-endpoint access-control diff across accounts, path-based auth bypass, Autorize-style session replay |
+| SSRF | `ssrf_pivot_engine` | Internal network mapping, OOB verification, redirect chain following, cloud metadata probing |
+| Race conditions | `race_probe`, `stateful_race_probe` | C++ HTTP/2 single-packet races, stateful races with token refresh/resource locks |
 | API security | `graphql_depth`, `oauth_probe`, `jwt_analyze`, `ws_probe`, `http2_probe` | GraphQL introspection/batching, OAuth state confusion, JWT algorithm confusion, WebSocket auth, HTTP/2 smuggling |
+| Recon | `js_ast_harvester`, `js_reverse_engineer`, `port_scan` | JS secret scanning with validation, LinkFinder endpoint extraction, Wayback parameter mining, Wappalyzer tech detection, port scanning |
 | File upload | `upload_polyglot_probe` | Polyglot files, dual-format, magic byte manipulation |
 | Prototype pollution | `prototype_pollution` | `__proto__` / `constructor` injection |
 | CORS | `cors_probe`, `cors_chain_validator` | Credentialed requests, origin reflection, wildcard validation |
@@ -220,10 +249,9 @@ Additional defences:
 
 | Priority | Backend | Use case |
 |----------|---------|----------|
-| 1 | llama.cpp (in-process) | Primary — GBNF grammar-constrained tool-calling, per-node token caps (256-2048) |
-| 2 | Ollama (HTTP) | Fallback when llama.cpp unavailable |
-| 3 | Amazon Bedrock | Final fallback — Claude Haiku, Tokyo region |
-| 4 | Anthropic API | Optional — Sonnet for PoC generation, ephemeral prompt caching |
+| 1 | llama-server (local, fine-tuned LoRA) | Primary — grammar-constrained tool-calling, per-node token caps (256-2048), RAG-augmented |
+| 2 | Amazon Bedrock | Fallback — Claude Haiku, Tokyo region |
+| 3 | Anthropic API | Optional — strategic reasoning escalation, PoC generation |
 
 VRAM budget management prevents mid-inference spill: `nvidia-smi` query → per-layer cost estimation → safe `n_gpu_layers` cap → headroom reservation for KV cache.
 
@@ -236,8 +264,9 @@ VRAM budget management prevents mid-inference spill: `nvidia-smi` query → per-
 | Workflow orchestration | LangGraph (StateGraph, conditional edges, fan-out/fan-in, `Annotated` reducers) |
 | Local LLM inference | llama.cpp (in-process, GGUF) with Ollama fallback |
 | LLM fallback | Amazon Bedrock (Tokyo `ap-northeast-1`) |
-| HTTP client | httpx + curl_cffi (JA4 fingerprinting, Cloudflare bypass) |
-| Browser automation | Playwright (CDP extraction, MutationObserver canary, SPA routing) |
+| HTTP client | httpx + curl_cffi (JA4 fingerprinting) + Playwright (WAF bypass escalation) |
+| Browser automation | Playwright (CDP extraction, MutationObserver canary, SPA routing, WAF bypass) |
+| Native binary | C++ HTTP/2 single-packet race engine |
 | CVSS scoring | CVSS 4.0 vectors, standalone + chained estimates |
 | Reporting | JSON + Markdown, bilingual EN/JP, empirical flag enforcement |
 | Testing | pytest — integration suites with zero mocked network |
