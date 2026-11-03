@@ -1,21 +1,29 @@
-# Shikigami - PROTOTYPE POC 
+# Shikigami — Agentic Penetration Testing Ecosystem
 
 
 
-Agentic web application penetration testing ecosystem — Japanese infrastructure specialist.
+**Ranked #3 on bitbank Inc. Bug Bounty Program (IssueHunt Japan) within 2 months using this tooling.**
 
-![Version](https://img.shields.io/badge/version-0.9.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![LOC](https://img.shields.io/badge/LOC-34%2C000%2B-brightgreen)
 ![Nodes](https://img.shields.io/badge/LangGraph%20nodes-78%2B-orange)
-![Stack](https://img.shields.io/badge/stack-LangGraph%20%7C%20llama.cpp%20%7C%20AWS-orange)
+![RAG](https://img.shields.io/badge/RAG%20vectors-20%2C158-purple)
+![Stack](https://img.shields.io/badge/stack-LangGraph%20%7C%20llama.cpp%20%7C%20Burp%20Suite-orange)
 
 ---
 
 ## What it is
 
-Shikigami is a **multi-pipeline agentic penetration testing ecosystem** built for Japanese web infrastructure. Four LangGraph pipelines — recon, session capture, active exploitation, and findings analysis — share a common state bus, evidence propagation layer, and LLM routing backbone. 78+ graph nodes coordinate parallel execution, iterative self-improvement, and multi-turn tool-calling exploitation loops.
+Shikigami is a **multi-pipeline agentic penetration testing ecosystem** — 34,000+ lines of Python and C++ across 128 files. Four LangGraph pipelines — recon, session capture, active exploitation, and findings analysis — share a common state bus, evidence propagation layer, and LLM routing backbone. 78+ graph nodes coordinate parallel execution, iterative self-improvement, and multi-turn tool-calling exploitation loops.
 
 Built for bug bounty programmes on Japanese platforms (IssueHunt.jp, BugBounty.jp) where character encoding edge cases (Shift-JIS, EUC-JP, ISO-2022-JP) create attack surfaces that generic Western scanners miss entirely. All LLM inference runs locally via llama.cpp — no target data leaves the machine.
+
+**Key results:**
+- **#3 ranked researcher** on bitbank Inc. (Japan's largest crypto exchange) within 2 months
+- **8 confirmed vulnerabilities** (5 Critical, 2 High) across authorised programmes
+- **61% false positive reduction** via dual-LoRA fine-tuned triage model
+- **~95% Cloudflare bypass rate** via unified CDN/WAF engine
 
 ---
 
@@ -281,11 +289,104 @@ VRAM budget management prevents mid-inference spill: `nvidia-smi` query → per-
 
 **Modular pipelines** — each pipeline (Kitsuneki, Tsuki, Kurasu, Kagami) runs independently or chains via state handoff. New nodes slot into the graph without touching existing node logic.
 
-**Aesop's fable** - follows legitimate philosophies of onmyodo and western fables to integrate the narrative of fox and crow in west eastern syncretism. The fox gets the crow to speak. 
+**Aesop's fable** — follows legitimate philosophies of onmyodo and western fables to integrate the narrative of fox and crow in east-western syncretism. The fox gets the crow to speak.
+
+---
+
+## Kagami — RAG + QLoRA Training Pipeline
+
+The fifth pipeline — a retrieval-augmented generation layer and fine-tuning infrastructure that powers Shikigami's LLM-driven triage.
+
+### RAG knowledge base
+
+| Metric | Value |
+|--------|-------|
+| Total vectors | 20,158 |
+| Domains | Web2 exploitation + Web3/DeFi security |
+| Embedding model | nomic-embed (local, 768-dim) |
+| Vector store | LanceDB (local, zero-config) |
+| Retrieval | Semantic similarity with domain-weighted scoring |
+
+Corpus spans: OWASP methodologies, disclosed bug bounty reports, smart contract vulnerability patterns, WAF bypass techniques, Japanese-infrastructure-specific attack surfaces, and historical scan findings.
+
+### QLoRA fine-tuning
+
+Three iterations of adapter training on security-domain data:
+
+| Iteration | Training examples | Loss | Purpose |
+|-----------|------------------|------|---------|
+| iter1 | Baseline corpus | — | Foundation |
+| iter2 | 16,315 refined examples | 0.265 | Vulnerability classification + triage |
+| iter3 (persona) | 492 examples | — | Communication style + report framing |
+
+**Dual-LoRA production deployment:** Security adapter (0.85 weight) + persona adapter (0.15 weight) loaded simultaneously via llama.cpp `--lora-scaled`. Achieved **61% false positive reduction** on Anthropic scan targets vs single-adapter baseline.
+
+### Training data pipeline
+
+Automated extraction from scan outputs to training-ready JSONL:
+- `unified_lora_extractor.py` — converts raw findings, LLM interactions, and verification outcomes into instruction-tuning format
+- Value sanitisation: PII, credentials, and target-specific data replaced with placeholders before training
+- `verify.py` — schema validation ensuring training data integrity
+- 17 vulnerability types across 84 targets in production training set
+
+---
+
+## FindingBus — Cross-Pipeline Event Architecture
+
+SQLite-backed event bus enabling real-time communication between all pipelines.
+
+```
+Kitsuneki publishes:        Kurasu subscribes:
+  tech_detected       ──▶     selects relevant exploit nodes
+  param_discovered    ──▶     prioritises parameter fuzzing
+  cdn_identified      ──▶     applies CDN-specific bypass
+
+Kurasu publishes:           Kagami subscribes:
+  sink_confirmed      ──▶     includes in analysis
+  chain_confirmed     ──▶     generates report section
+  vuln_confirmed      ──▶     triggers verification pass
+```
+
+Persistent storage at `~/.shinki/finding_bus.db` — survives process restarts. Kurasu can start cold and still see all events Kitsuneki published in prior runs.
+
+---
+
+## Burp Suite Pro Integration
+
+Six integration points between Shikigami and Burp Suite Professional:
+
+| Integration | Direction | Purpose |
+|-------------|-----------|---------|
+| `--burp-proxy` flag | Shikigami → Burp | Route all scan traffic through Burp for passive analysis |
+| Finding import | Burp → Shikigami | Import Burp Scanner findings into FindingBus for LLM triage |
+| Session sharing | Tsuki → Burp | Export captured sessions as Burp cookie jar |
+| Scope sync | Burp → Shikigami | Import Burp target scope as scan scope |
+| XSS confirmation | Shikigami → Burp | Send XSS candidates to Burp Repeater for manual verification |
+| Turbo Intruder | Shikigami → Burp | Delegate high-volume fuzzing to Turbo Intruder |
+
+20+ Burp extensions configured: Autorize, Hackvertor, Turbo Intruder, Active Scan++, JSON Beautifier, JWT Editor, and others.
+
+---
+
+## Infrastructure
+
+Deployed on a hardened Gentoo Linux workstation:
+
+| Component | Detail |
+|-----------|--------|
+| OS | Custom Gentoo (source-compiled, PREEMPT_RT kernel) |
+| GPU | NVIDIA RTX 4070 — 24 GPU layers for 12B model inference |
+| MAC | TOMOYO Linux mandatory access control in learning mode |
+| Network | pfSense VLAN segmentation with fail-closed VPN kill-switch |
+| Encryption | LUKS2/LVM full disk encryption |
+| LLM runtime | llama-server (Gemma 4 12B Q4_K_M), 8192 context window |
+| Embedding | nomic-embed on dedicated port (8082) |
 
 ---
 
 ## Status
+
+Private repository — available for review during hiring or engagement discussions.
 
 Private repository — available for review during hiring or engagement discussions.
 
